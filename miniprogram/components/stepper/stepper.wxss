@@ -1,0 +1,19 @@
+/* stepper.wxss */
+/* 按钮用微信原生 button[size=mini] 的默认外观，这里只控制排布与数字宽度 */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper-btn {
+  margin: 0;
+}
+
+.stepper-input {
+  width: 96rpx;
+  margin: 0 12rpx;
+  font-size: 32rpx;
+  text-align: center;
+  color: var(--tf-fg-0, rgba(0, 0, 0, 0.9));
+}

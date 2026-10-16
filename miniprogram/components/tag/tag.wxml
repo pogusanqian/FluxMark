@@ -1,0 +1,8 @@
+<!--tag.wxml-->
+<!-- 淡底小标签：左边说明、右边数值。规格照 weui-tag（10px 字 / 2px 圆角 / 12% 淡底），
+     配色由 type 决定（default 灰 / primary 蓝 / success 绿 / warning 橙 / danger 红）；
+     自己写样式，不引组件库；摆在哪由使用方决定（宿主的 margin / flex 由页面管） -->
+<view class="tag tag--{{type}}">
+  <text wx:if="{{label}}">{{label}}</text>
+  <text wx:if="{{value}}" class="tag-value">{{value}}</text>
+</view>

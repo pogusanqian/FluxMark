@@ -1,0 +1,266 @@
+/**index.wxss**/
+/*
+ * 原则：能用平台默认的就不要自己造。
+ * - 颜色全部取微信 WeUI 调色板：涨 #FA5151、跌 #07C160、次要文字 rgba(0,0,0,.55)
+ * - 字号只用微信默认梯度：12px = 24rpx、14px = 28rpx、16px = 32rpx
+ * - 能用原生组件的就用原生：button[size=mini]（滚轮里的按钮）、
+ *   picker-view（默认幅度）、input（价格）、hover-class（格子的按下反馈）
+ *
+ * 版式两段（标题交给导航栏居中，页内不再有大标题）：
+ * 1. 参数卡 —— 昨收 / 今开 / 成本 三个价并排；基准那一格的价格下面带一行小字 1%=…
+ *    卡底一行两个比例（今开较昨收 / 今开较成本）
+ * 2. 阶梯卡 —— 一行一个档位（价格贴外、幅度居中），表头与行同高
+ */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tf-bg-1);
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.page {
+  padding: 16rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.card {
+  background: var(--tf-bg-0);
+  border-radius: 24rpx;
+}
+
+/* 参数卡：三个格子并排。昨收 / 今开是基准开关的候选 —— 长按哪个价，幅度就以哪个价为轴 */
+.param-row {
+  display: flex;
+}
+
+.param {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24rpx 32rpx 28rpx;
+}
+
+/* 格子之间的竖分隔线（第二个、第三个格子各有一条） */
+.param--divider {
+  border-left: 1px solid var(--tf-border);
+}
+
+/*
+ * 标题行：名字 + 这一价的 1%。
+ * 允许换行、名字不许被压缩 —— 价格上到五位数时 1%=120.00 在 82px 里放不下，
+ * 就整枚标签掉到第二行，而不是把「今开」挤成两行或把数字截断。
+ */
+.param-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.param-label {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: var(--tf-fg-2);
+}
+
+/* 基准标记就是标题行里的 1% 标签（见 .param-scale），不再有独立的「基准」小标签 */
+
+/*
+ * 价格输入：必须显式给出高度与行高。
+ * Skyline 下占位符那一行的行高比输入值略高，盒子只由字号撑开时，
+ * 「0.00」的下半截会被裁掉（真机实测），给足 64rpx 就放得下。
+ */
+.param-input {
+  margin-top: 8rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--tf-fg-0);
+}
+
+/*
+ * 基准价的 1%：写在那一格的标题行里，靠右的一枚淡底小胶囊 —— 今开    [1%=0.33]
+ * 谁显示这枚胶囊，谁就是幅度基准，所以原来那枚实心深色的「基准」标签撤掉了。
+ * 胶囊本身的观感（底色 / 圆角 / 字号 / 数值加重）在 components/tag 里，
+ * 这里只管它在这行里的落位：靠右、不换行时按内容宽度收缩。
+ */
+.param-scale {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* 占位符不跟着上面的粗体走，否则空着的时候比真数字还抢眼（字号随 input 继承） */
+.param-placeholder {
+  font-weight: 400;
+  color: var(--tf-fg-2);
+}
+
+/*
+ * 卡底只剩一行：两个比例（今开较昨收 / 今开较成本，各自写全主语，
+ * 归属靠文字而不是靠「离哪一列近」）。
+ * 基准价的 1% 不在这里 —— 它贴在基准那一格里（见 .param-scale）。
+ */
+.param-foots {
+  border-top: 1px solid var(--tf-border);
+}
+
+/* 一行装两个比例，两端对齐；只剩一条时自然靠左，不居中也不留空洞 */
+.param-readout {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 72rpx;
+  padding: 0 32rpx;
+}
+
+.param-pair {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.param-pair-label {
+  font-size: 24rpx;
+  color: var(--tf-fg-1);
+}
+
+/* 数值比说明重一档：24rpx 灰字说明 + 28rpx 深色粗体数值 */
+.param-pair-value {
+  margin-left: 10rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--tf-fg-0);
+}
+
+/* 着色规则必须排在 .param-pair-value 之后：权重相同，后写的赢 */
+.param-pair-value--up {
+  color: var(--tf-up);
+}
+
+.param-pair-value--down {
+  color: var(--tf-down);
+}
+
+.param-pair-value--flat {
+  color: var(--tf-fg-2);
+}
+
+/* 什么都没填时占在同一行位置，说清楚该填哪个价 */
+.param-hint {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 72rpx;
+  padding: 0 32rpx;
+  font-size: 24rpx;
+  color: var(--tf-fg-2);
+}
+
+/* 阶梯卡 */
+.ladder {
+  margin-top: 24rpx;
+  padding: 0 32rpx 24rpx;
+}
+
+/* 表头和行同高：整张表一个节奏，第一行不会挤在表头下面 */
+.ladder-head {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  font-size: 26rpx;
+}
+
+.col-down {
+  flex: 1;
+  color: var(--tf-down);
+}
+
+.col-up {
+  flex: 1;
+  text-align: right;
+  color: var(--tf-up);
+}
+
+/* 一行一个档位；不加行分割线，靠等距的 88rpx 节奏分档，页面更干净 */
+.row {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+}
+
+.price {
+  font-size: 32rpx;
+}
+
+/*
+ * 中间列只留步进器需要的宽度，两侧价格列就宽了，数字不会离得太开。
+ */
+.col-ratio {
+  width: 208rpx;
+  text-align: center;
+}
+
+.ratio-text {
+  font-size: 28rpx;
+  color: var(--tf-fg-1);
+}
+
+.ratio-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tip {
+  margin-top: 16rpx;
+  padding: 0 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--tf-fg-2);
+}
+
+.tip--error {
+  color: var(--tf-danger);
+}
+
+/* 长按最后一行后展开的「默认幅度」滚轮 */
+.default-editor {
+  padding: 16rpx 0 8rpx;
+  border-top: 1px solid var(--tf-border);
+}
+
+/* text-align 直接写在块级 view 上，省掉一层居中用的 flex 容器 */
+.default-title {
+  padding-bottom: 8rpx;
+  font-size: 24rpx;
+  text-align: center;
+  color: var(--tf-fg-2);
+}
+
+/*
+ * 滚轮是固定几何的控件：一格 34px，滚轮高 34px × 3 = 102px（正好三格，中间那格就是选中框）。
+ * 这里用 px 不用 rpx —— 选中框高度（indicator-style）和格子行高必须同一个单位才锁得死，
+ * 混用会在宽屏上错开半行。字体仍走字号梯度。
+ */
+.default-picker {
+  width: 100%;
+  height: 102px;
+}
+
+.default-option {
+  line-height: 34px;
+  text-align: center;
+}
+
+/* 按钮用原生 button[size=mini]，间距交给 space-around，不逐个写 margin */
+.default-actions {
+  display: flex;
+  justify-content: space-around;
+}

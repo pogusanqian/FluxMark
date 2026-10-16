@@ -1,0 +1,142 @@
+<!--index.wxml-->
+<!-- 标题交给导航栏居中显示、底色与页面一致：顶部没有白条，页内也没有大标题 -->
+<navigation-bar title="挂单价计算" back="{{false}}" color="black" background="#F7F7F8"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page">
+    <!-- 参数卡：三个价并排 —— 昨收 / 今开 是行情价，成本是自己的持仓价，三个都能当幅度基准。
+         标题行 = 名字 + 这一价的 1%（谁显示 1%，谁就是幅度基准，所以不需要「基准」标签）；
+         两个比例读数沉到卡底。长按哪一格就弹原生弹框问是否改用那个价为基准（避免误触） -->
+    <view class="card">
+      <view class="param-row">
+        <view class="param" bind:longpress="onAskBasisPrevClose">
+          <view class="param-head">
+            <text class="param-label">昨收</text>
+            <tag
+              wx:if="{{basis === 'prevClose' && basisPercentAmount}}"
+              class="param-scale"
+              type="warning"
+              label="1%="
+              value="{{basisPercentAmount}}"
+            />
+          </view>
+          <input
+            class="param-input"
+            type="digit"
+            value="{{prevClosePrice}}"
+            placeholder="0.00"
+            placeholder-class="param-placeholder"
+            bind:input="onPrevCloseInput"
+          />
+        </view>
+        <view class="param param--divider" bind:longpress="onAskBasisOpen">
+          <view class="param-head">
+            <text class="param-label">今开</text>
+            <tag
+              wx:if="{{basis === 'open' && basisPercentAmount}}"
+              class="param-scale"
+              type="warning"
+              label="1%="
+              value="{{basisPercentAmount}}"
+            />
+          </view>
+          <input
+            class="param-input"
+            type="digit"
+            value="{{openPrice}}"
+            placeholder="0.00"
+            placeholder-class="param-placeholder"
+            bind:input="onInput"
+          />
+        </view>
+        <view class="param param--divider" bind:longpress="onAskBasisCost">
+          <view class="param-head">
+            <text class="param-label">成本</text>
+            <tag
+              wx:if="{{basis === 'cost' && basisPercentAmount}}"
+              class="param-scale"
+              type="warning"
+              label="1%="
+              value="{{basisPercentAmount}}"
+            />
+          </view>
+          <input
+            class="param-input"
+            type="digit"
+            value="{{costPrice}}"
+            placeholder="0.00"
+            placeholder-class="param-placeholder"
+            bind:input="onCostInput"
+          />
+        </view>
+      </view>
+
+      <!-- 卡底一行：两个比例各自写全主语「今开较…」，归属靠文字而不是靠位置猜；
+           两个价没填齐时整行不出，只剩的那条也不居中占位 -->
+      <view class="param-foots">
+        <view wx:if="{{openVsPrevClose.text || openVsCost.text}}" class="param-readout">
+          <view wx:if="{{openVsPrevClose.text}}" class="param-pair">
+            <text class="param-pair-label">今开较昨收</text>
+            <text class="param-pair-value param-pair-value--{{openVsPrevClose.tone}}">{{openVsPrevClose.text}}</text>
+          </view>
+          <view wx:if="{{openVsCost.text}}" class="param-pair">
+            <text class="param-pair-label">今开较成本</text>
+            <text class="param-pair-value param-pair-value--{{openVsCost.tone}}">{{openVsCost.text}}</text>
+          </view>
+        </view>
+        <view wx:if="{{showHint}}" class="param-hint">填入昨收与今开，即得每一档挂单价</view>
+      </view>
+    </view>
+
+    <view wx:if="{{error}}" class="tip tip--error">{{error}}</view>
+
+    <!-- 阶梯卡：一行一个档位（价格贴外、幅度居中），表头与行同高 -->
+    <view class="card ladder">
+      <view class="ladder-head">
+        <text class="col-down">下浮</text>
+        <text class="col-ratio">幅度(%)</text>
+        <text class="col-up">上浮</text>
+      </view>
+
+      <view class="row" wx:for="{{fixed}}" wx:key="ratioLabel">
+        <text class="col-down price">{{item.fall.text}}</text>
+        <text class="col-ratio ratio-text">{{item.ratioLabel}}</text>
+        <text class="col-up price">{{item.rise.text}}</text>
+      </view>
+
+      <!-- 步进行：中间用步进器调幅度；长按这一行可以用滚轮改默认值 -->
+      <view class="row" bind:longpress="onDefaultEdit">
+        <text class="col-down price">{{current.fall.text}}</text>
+        <view class="col-ratio ratio-cell">
+          <stepper
+            value="{{ratioValue}}"
+            min="{{ratioMin}}"
+            max="{{ratioMax}}"
+            step="{{ratioStep}}"
+            bind:change="onRatioChange"
+          />
+        </view>
+        <text class="col-up price">{{current.rise.text}}</text>
+      </view>
+
+      <!-- 长按最后一行后展开：用滚轮改默认幅度 -->
+      <view wx:if="{{editingDefault}}" class="default-editor">
+        <view class="default-title">滚动选择默认幅度（1% ~ 10%）</view>
+        <!-- 选中框高度和每一行的行高必须同一个值（都是 34px）：这样数字才会落在两条线正中间 -->
+        <picker-view
+          class="default-picker"
+          indicator-style="height: 34px"
+          value="{{wheelValue}}"
+          bind:change="onWheelChange"
+        >
+          <picker-view-column>
+            <view class="default-option" wx:for="{{wheelOptions}}" wx:key="*this">{{item}}</view>
+          </picker-view-column>
+        </picker-view>
+        <view class="default-actions">
+          <button size="mini" bind:tap="onDefaultCancel">取消</button>
+          <button size="mini" type="primary" bind:tap="onDefaultSave">保存</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</scroll-view>

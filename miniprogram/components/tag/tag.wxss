@@ -1,0 +1,66 @@
+/* tag.wxss */
+/*
+ * 一枚淡底小标签：4rpx 圆角、20rpx 字、0 8rpx 内边距，宽高只由内容决定。
+ * 五种配色，底色都是对应颜色的 12% 淡底、文字用本体的颜色：
+ *   default 灰 · primary 蓝 · success 绿 · warning 橙 · danger 红
+ * 颜色全部取 app.wxss 的调色板变量，并带字面量兜底（组件样式隔离下变量靠继承）。
+ * 注意 .tag-value 的着色按变体各写一条，别用 inherit —— 少一点对渲染器行为的依赖。
+ */
+.tag {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 8rpx;
+  font-size: 20rpx;
+  line-height: 30rpx;
+  border-radius: 4rpx;
+  color: var(--tf-fg-2, rgba(0, 0, 0, 0.35));
+  background: var(--tf-border, rgba(0, 0, 0, 0.08));
+}
+
+/* 数值比说明重一档：先看到数，再看到它是什么 */
+.tag-value {
+  margin-left: 2rpx;
+  font-weight: 600;
+}
+
+/* 灰底时数值要加深一档，否则整枚都太淡 */
+.tag--default .tag-value {
+  color: var(--tf-fg-0, rgba(0, 0, 0, 0.9));
+}
+
+.tag--primary {
+  color: var(--tf-link, #10aeff);
+  background: var(--tf-link-bg, rgba(16, 174, 255, 0.12));
+}
+
+.tag--primary .tag-value {
+  color: var(--tf-link, #10aeff);
+}
+
+.tag--success {
+  color: var(--tf-down, #07c160);
+  background: var(--tf-down-bg, rgba(7, 193, 96, 0.12));
+}
+
+.tag--success .tag-value {
+  color: var(--tf-down, #07c160);
+}
+
+.tag--warning {
+  color: var(--tf-warn, #fa9d3b);
+  background: var(--tf-warn-bg, rgba(250, 157, 59, 0.12));
+}
+
+.tag--warning .tag-value {
+  color: var(--tf-warn, #fa9d3b);
+}
+
+.tag--danger {
+  color: var(--tf-up, #fa5151);
+  background: var(--tf-up-bg, rgba(250, 81, 81, 0.12));
+}
+
+.tag--danger .tag-value {
+  color: var(--tf-up, #fa5151);
+}

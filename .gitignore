@@ -1,0 +1,10 @@
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.preview
+
+# 开发期依赖（ESLint / Prettier / 类型定义），不进小程序包
+node_modules/
+
