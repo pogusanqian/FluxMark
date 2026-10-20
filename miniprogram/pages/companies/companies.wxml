@@ -3,143 +3,28 @@
 <scroll-view class="scrollarea" scroll-y type="list" scroll-into-view="{{scrollIntoView}}">
   <!-- 点页面任意处收起左滑打开的那一张卡 -->
   <view class="page" bind:tap="onPageTap">
-    <view class="hint">一家公司一张卡，改完自动保存；左滑一张卡可删除。</view>
-
-    <view
-      wx:for="{{companies}}"
-      wx:key="id"
-      class="swipe"
-      id="company-{{item.id}}"
-      data-index="{{index}}"
-    >
-      <!-- 藏在卡下面：左滑后从右边露出来的删除动作 -->
-      <view
-        class="swipe-action"
+    <!-- 一家公司一张卡：值从页面传下去，改动用事件抛回来（见 components/company-card）。
+         卡与卡的间距留给这一层的容器，卡片组件自己不管排版 -->
+    <view wx:for="{{companies}}" wx:key="id" id="company-{{item.id}}" class="card-item">
+      <company-card
         data-index="{{index}}"
-        catch:tap="onDeleteTap"
-        hover-class="swipe-action--active"
-        aria-role="button"
-        aria-label="删除{{item.name}}"
-      >删除</view>
-
-      <!-- 上面这层是卡片本身：左滑时整张左移，把删除露出来。
-           不在这一层拦 tap：点任何地方都让页面把手势收起（见 onPageTap） -->
-      <view
-        class="swipe-body {{openId === item.id ? 'swipe-body--open' : ''}}"
-        data-id="{{item.id}}"
-        bind:touchstart="onTouchStart"
-        bind:touchend="onTouchEnd"
-      >
-        <view class="company">
-          <input
-            class="company-name"
-            type="text"
-            value="{{item.name}}"
-            placeholder="公司名称"
-            placeholder-class="company-name-placeholder"
-            maxlength="20"
-            data-index="{{index}}"
-            bind:input="onNameInput"
-          />
-
-          <!-- 价格两列一行：昨收/成本、今开/今收、最高/最低 -->
-          <view class="fields">
-            <view class="field">
-              <text class="field-label">昨收</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.prevClose}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="prevClose"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-            <view class="field">
-              <text class="field-label">成本</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.cost}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="cost"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-            <view class="field">
-              <text class="field-label">今开</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.open}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="open"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-            <view class="field">
-              <text class="field-label">今收</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.close}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="close"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-            <view class="field">
-              <text class="field-label">最高</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.high}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="high"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-            <view class="field">
-              <text class="field-label">最低</text>
-              <input
-                class="field-input"
-                type="digit"
-                value="{{item.low}}"
-                placeholder="0.00"
-                placeholder-class="field-placeholder"
-                maxlength="10"
-                data-index="{{index}}"
-                data-field="low"
-                bind:input="onPriceInput"
-                bind:blur="onPriceBlur"
-              />
-            </view>
-          </view>
-
-          <!-- 校验提示：只在这一张卡有问题时出现 -->
-          <view wx:if="{{rowErrors[index]}}" class="row-error">{{rowErrors[index]}}</view>
-        </view>
-      </view>
+        name="{{item.name}}"
+        prev="{{item.prevClose}}"
+        cost="{{item.cost}}"
+        open="{{item.open}}"
+        close="{{item.close}}"
+        high="{{item.high}}"
+        low="{{item.low}}"
+        error="{{rowErrors[index]}}"
+        show-clear="{{hasPrices[index]}}"
+        revealed="{{openId === item.id}}"
+        bind:nameinput="onNameInput"
+        bind:priceinput="onPriceInput"
+        bind:priceblur="onPriceBlur"
+        bind:clear="onClearTap"
+        bind:delete="onDeleteTap"
+        bind:swipe="onSwipe"
+      />
     </view>
 
     <view wx:if="{{!companies.length}}" class="empty">还没有公司，点下面的「添加公司」开始</view>

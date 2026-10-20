@@ -61,6 +61,17 @@ function rangeValue(raw: string): string {
 }
 
 /**
+ * 今日 最高 / 今收 / 最低 里有没有任何一格填过。
+ * 三格都空时整行不出现：这三个价在公司管理页录入，计算页只在有数的时候把它们摆出来，
+ * 不让一行「--」占着卡片的版面。
+ * 用原文判空（不是 parsePrice）：只在切换公司 / 回到页面时算一次，
+ * 输入过程中不会因为打了个 "3." 就把正在编辑的那一行收掉。
+ */
+function hasRangeValues(company: Company): boolean {
+  return [company.high, company.close, company.low].some((raw) => raw.trim() !== '')
+}
+
+/**
  * 三个小格（最高 / 今收 / 最低）各自跟「当前基准价」比：
  * 高于基准 = 红(up)、低于基准 = 绿(down)、持平 = 灰(flat)；有一个价比不了就不染色（空串）。
  * 基准是长按选出来的那个价 —— 基准是今开就比今开，是昨收就比昨收。
@@ -93,6 +104,8 @@ type Data = {
   rangeClose: string
   rangeHigh: string
   rangeLow: string
+  /** 中间那行（最高 / 今收 / 最低）要不要出现：按公司有没有数据算，长按卡底读数行也能手动开关 */
+  showRange: boolean
   /** 最高 / 今收 / 最低 各自与当前基准价比出来的着色：高于基准红、低于绿、持平灰；比不了时为空、不着色 */
   highTone: VsOtherTone | ''
   closeTone: VsOtherTone | ''
@@ -140,6 +153,8 @@ type Methods = {
   onHighInput(e: WechatMiniprogram.Input): void
   onCloseInput(e: WechatMiniprogram.Input): void
   onLowInput(e: WechatMiniprogram.Input): void
+  /** 长按卡底那一行：开/关中间那行「最高 / 今收 / 最低」（临时补录用，再长按一次收起） */
+  onToggleRange(): void
   /** 选择器换公司 */
   onCompanyChange(e: WechatMiniprogram.PickerChange): void
   /** 去公司管理页 */
@@ -188,6 +203,7 @@ Component<Data, {}, Methods, {}, true>({
     rangeClose: '',
     rangeHigh: '',
     rangeLow: '',
+    showRange: false,
     highTone: '',
     closeTone: '',
     lowTone: '',
@@ -263,6 +279,11 @@ Component<Data, {}, Methods, {}, true>({
       this.writeBack('low', value)
       this.refresh()
     },
+    onToggleRange() {
+      // 只切显隐，不写数据：真填了才会回写公司、下次进来才自动出现。
+      // 长按是故意的：这一行平时按数据自动显隐，不占卡底的位置
+      this.setData({ showRange: !this.data.showRange })
+    },
     onCompanyChange(e) {
       const value = Number(e.detail.value)
       if (!Number.isInteger(value) || value < 0) return
@@ -284,6 +305,7 @@ Component<Data, {}, Methods, {}, true>({
         rangeClose: rangeValue(company.close),
         rangeHigh: rangeValue(company.high),
         rangeLow: rangeValue(company.low),
+        showRange: hasRangeValues(company),
       })
       saveSelectedCompanyId(company.id)
       this.refresh()
@@ -309,6 +331,7 @@ Component<Data, {}, Methods, {}, true>({
         rangeClose: selected ? rangeValue(selected.close) : '',
         rangeHigh: selected ? rangeValue(selected.high) : '',
         rangeLow: selected ? rangeValue(selected.low) : '',
+        showRange: selected ? hasRangeValues(selected) : false,
       })
       this.refresh()
     },
@@ -393,6 +416,7 @@ Component<Data, {}, Methods, {}, true>({
         (this.data.costPrice !== '' && cost === null)
       const openVsPrevClose = calcVsOther(open, prevClose)
       const basisPercentAmount = basisPrice === null ? '' : calcOnePercentAmount(basisPrice)
+      const showHint = !openVsPrevClose.text && !basisPercentAmount
       this.setData({
         fixed: calcFixedPairs(basisPrice),
         current: calcPricePair(basisPrice, this.data.ratioValue),
@@ -403,7 +427,7 @@ Component<Data, {}, Methods, {}, true>({
         lowTone: toneVsBasis(this.data.rangeLow, basisPrice),
         closeVsHigh: calcVsOther(parsePrice(this.data.rangeClose), parsePrice(this.data.rangeHigh)),
         basisPercentAmount,
-        showHint: !openVsPrevClose.text && !basisPercentAmount,
+        showHint,
         error: invalidInput ? '请输入有效的价格，例如 10.05' : '',
       })
     },

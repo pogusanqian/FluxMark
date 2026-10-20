@@ -64,7 +64,7 @@ description: 本仓库是纯原生的微信小程序（TypeScript + Skyline 渲�
 
 ## 当前状态与已知待办
 
-- 模板残留已清理：`pages/logs/`、index 的用户信息示例、`app.ts` 的 `wx.login` 与 `logs` 写入全部删除。当前有两个页面：`pages/index/`（挂单价计算，顶部选公司）与 `pages/companies/`（公司表，左滑删除）。
+- 模板残留已清理：`pages/logs/`、index 的用户信息示例、`app.ts` 的 `wx.login` 与 `logs` 写入全部删除。当前有两个页面：`pages/index/`（挂单价计算，顶部选公司）与 `pages/companies/`（公司表，左滑删除）。公司页的卡片抽在 `components/company-card/`（受控：值按字段用属性传进去、改动靠事件抛回来），页面只管列表排版。
 - 公司数据在 `services/companies.ts`（公司表 + 当前选择 + 旧存储迁移），价格原文与解析分别交给 `services/companies.ts` 与 `services/order-price.ts`。
 - `typings/` 是旧版 `miniprogram-api-typings`（2.8.3），基础库实际为 3.17.4，新 API 类型可能缺失，处理方式见 `references/typescript.md`。
 - `project.config.json` 与 `project.private.config.json` 有重复/冲突字段（`compileHotReLoad`、`skylineRenderEnable`），以 private 为准。

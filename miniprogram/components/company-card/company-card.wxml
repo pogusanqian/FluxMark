@@ -1,0 +1,134 @@
+<!--company-card.wxml-->
+<!-- 一家公司一张卡：名称一行 + 六个价格（两列三行）。
+     值全部由页面传进来，卡片只负责手势与输入事件的转发（见 company-card.ts） -->
+<view class="swipe">
+  <!-- 藏在卡下面：左滑后从右边露出来的删除 -->
+  <view
+    class="swipe-action"
+    hover-class="swipe-action--active"
+    catch:tap="onDelete"
+    aria-role="button"
+    aria-label="删除{{name}}"
+  >删除</view>
+
+  <!-- 上面这层是卡片本体：左滑时整张左移，把删除露出来 -->
+  <view
+    class="swipe-body {{revealed ? 'swipe-body--open' : ''}}"
+    bind:touchstart="onTouchStart"
+    bind:touchend="onTouchEnd"
+  >
+    <view class="company">
+      <view class="company-head">
+        <input
+          class="company-name"
+          type="text"
+          value="{{name}}"
+          placeholder="公司名称"
+          placeholder-class="company-name-placeholder"
+          maxlength="20"
+          bind:input="onNameInput"
+        />
+        <view
+          wx:if="{{showClear}}"
+          class="company-clear"
+          hover-class="company-clear--active"
+          catch:tap="onClear"
+          aria-role="button"
+          aria-label="清空{{name}}的价格"
+        >清空</view>
+      </view>
+
+      <!-- 价格两列三行：每格「名字 + 数字」，数字顺着名字排，六格像一张小表；
+           两列之间不画线，靠 justify-content 让出的那道缝分开 -->
+      <view class="fields">
+        <view class="field">
+          <text class="field-label">昨收</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{prev}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="prevClose"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">成本</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{cost}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="cost"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">今开</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{open}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="open"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">今收</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{close}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="close"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">最高</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{high}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="high"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">最低</text>
+          <input
+            class="field-input"
+            type="digit"
+            value="{{low}}"
+            placeholder="0.00"
+            placeholder-class="field-placeholder"
+            maxlength="10"
+            data-field="low"
+            bind:input="onPriceInput"
+            bind:blur="onPriceBlur"
+          />
+        </view>
+      </view>
+
+      <!-- 校验提示：只在这张卡有问题时出现 -->
+      <view wx:if="{{error}}" class="row-error">{{error}}</view>
+    </view>
+  </view>
+</view>

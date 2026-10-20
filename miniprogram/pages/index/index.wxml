@@ -98,10 +98,11 @@
         </view>
       </view>
 
-      <!-- 第二行：最高 / 今收 / 最低 三个小格（左 · 中 · 右），三个数都能直接改，改完自动回写公司；
-           各自跟「当前基准」比：高于基准红、低于绿、持平灰（基准是今开就跟今开比，是昨收就跟昨收比）。
-           没有公司时也在，第一次改价会自动建一家 -->
-      <view class="param-day">
+      <!-- 第二行：最高 / 今收 / 最低 三个小格（左 · 中 · 右）。这三个价在公司管理页录入，
+           三格都空的公司整行不出现（showRange），卡片就只剩计算真正要用的三个价；
+           临时要补录时不用跑公司页：长按卡底那一行就能把它叫出来，再长按一次收回去。
+           出现时三个数都能直接改、改完回写公司，各自跟「当前基准」比：高于基准红、低于绿、持平灰 -->
+      <view wx:if="{{showRange}}" class="param-day">
         <view class="param-day-item param-day-item--start">
           <text class="param-day-label">最高</text>
           <input
@@ -137,8 +138,10 @@
         </view>
       </view>
 
-      <!-- 卡底一行：左边今开较昨收、右边今收比最高；两条都没算出来时只剩提示 -->
-      <view class="param-foots">
+      <!-- 卡底一行：左边今开较昨收、右边今收比最高。
+           长按这一行＝开/关中间那行「最高 / 今收 / 最低」：这三个价平时按公司有没有数据自动显隐，
+           临时要补录时不用跑公司页，长按就把它叫出来，再长按一次收回去 -->
+      <view class="param-foots" bind:longpress="onToggleRange">
         <view wx:if="{{openVsPrevClose.text || closeVsHigh.text}}" class="param-readout">
           <view wx:if="{{openVsPrevClose.text}}" class="param-pair">
             <text class="param-pair-label">今开较昨收</text>

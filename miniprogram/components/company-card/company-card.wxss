@@ -1,0 +1,159 @@
+/* company-card.wxss */
+/*
+ * 一张公司卡：白底、24rpx 圆角，卡里只有两样东西 —— 名称一行、价格两列三行。
+ * 不加任何分隔线（上一版横竖线加上去反而更乱）：层级靠字号和留白，
+ * 和计算页参数卡的朴素感保持一致。
+ * 左滑整张卡左移 80px，露出压在下面的红色「删除」。
+ * 颜色只取 app.wxss 的调色板；字号走微信默认梯度（24rpx=12px、32rpx=16px）。
+ */
+
+/*
+ * 左滑容器就是一张卡：删除动作压在底层，卡片在上层。
+ * overflow: hidden 既裁掉卡片平移出界的部分，也把红色删除裁成卡片的圆角。
+ * 删除宽度与卡片位移都用 px（不是 rpx）：这是一块固定的手势几何，
+ * 与 company-card.ts 里 30px 的滑动阈值同一套单位，换屏宽也不会错位。
+ */
+.swipe {
+  position: relative;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.swipe-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  background: var(--tf-danger, #fa5151);
+  color: #ffffff;
+  font-size: 28rpx;
+}
+
+.swipe-action--active {
+  opacity: 0.8;
+}
+
+/* 卡片本体：打开时整张左移 80px，正好让出删除动作的宽度 */
+.swipe-body {
+  position: relative;
+  border-radius: 24rpx;
+  background: var(--tf-bg-0, #ffffff);
+  transition: transform 0.2s ease;
+}
+
+.swipe-body--open {
+  transform: translateX(-80px);
+}
+
+/* 卡内统一的内边距：名称与价格左右落在同一条线上，上下留白对称 */
+.company {
+  padding: 20rpx 28rpx 18rpx;
+}
+
+/* 名称一行：输入框吃掉剩余宽度，右边挂一个「清空」 */
+.company-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 68rpx;
+}
+
+/*
+ * 名称输入必须显式给高度与行高。
+ * Skyline 下占位符那一行比输入值略高，盒子只由字号撑开时会裁掉下半截
+ * （计算页的价格输入踩过同样的坑，见 pages/index/index.wxss）。
+ */
+.company-name {
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+  line-height: 68rpx;
+  padding: 0;
+  /* 原生 input 不继承字体；公司名是卡片的标题，比下面的价格重一档 */
+  font-family: "Barlow", sans-serif;
+  font-size: 34rpx;
+  font-weight: 400;
+  color: var(--tf-fg-0, rgba(0, 0, 0, 0.9));
+}
+
+/*
+ * 名称右边的「清空」：只清六个价格、公司本身留着，所以做得比「删除」轻得多 ——
+ * 灰色小字，没有底色，靠右边对齐占位；点按有 hover 反馈。
+ * 高度与名称行同高（68rpx），点击区就是整行高度，不用额外的上下 padding 撑开。
+ */
+.company-clear {
+  flex: none;
+  height: 68rpx;
+  line-height: 68rpx;
+  padding-left: 24rpx;
+  font-size: 24rpx;
+  color: var(--tf-fg-2, rgba(0, 0, 0, 0.35));
+}
+
+.company-clear--active {
+  opacity: 0.5;
+}
+
+.company-name-placeholder {
+  font-weight: 400;
+  color: var(--tf-fg-2, rgba(0, 0, 0, 0.35));
+}
+
+/*
+ * 价格区：两列三行，一格「名字 + 数字」并排。
+ * 每格 48% 宽、两端对齐，两格之间自然留出 4% 的缝 —— 不画竖线，也不靠 padding
+ * 硬挤，Skyline 下不用赌 box-sizing 的支持情况。
+ */
+.fields {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 4rpx;
+}
+
+.field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 48%;
+  height: 72rpx;
+}
+
+/* 标签固定宽度：左右两列的数字起点才能对齐，六格像一张小表 */
+.field-label {
+  flex: none;
+  width: 72rpx;
+  font-size: 24rpx;
+  color: var(--tf-fg-2, rgba(0, 0, 0, 0.35));
+}
+
+.field-input {
+  /* 不用 flex: 1：Skyline 的输入框默认宽度占满一行，用 calc 让出标签那一列更稳 */
+  width: calc(100% - 72rpx);
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0;
+  font-family: "Barlow", sans-serif;
+  font-size: 32rpx;
+  /* 价格用同族的 Medium：SemiBold 在这个字号下明显压过旁边的标签 */
+  font-weight: 500;
+  color: var(--tf-fg-0, rgba(0, 0, 0, 0.9));
+}
+
+.field-placeholder {
+  font-weight: 400;
+  color: var(--tf-fg-2, rgba(0, 0, 0, 0.35));
+}
+
+/* 校验提示写在价格下面 */
+.row-error {
+  padding: 2rpx 0 12rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--tf-danger, #fa5151);
+}
