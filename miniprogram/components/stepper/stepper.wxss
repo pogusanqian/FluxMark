@@ -4,15 +4,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 组件样式隔离，继承不到 page 的字体栈，这里再写一次字面量 */
+  font-family: "Barlow", sans-serif;
 }
 
+/* 按钮和输入框是原生控件，不继承外面的字体，各自点一次名 */
 .stepper-btn {
   margin: 0;
+  font-family: "Barlow", sans-serif;
 }
 
 .stepper-input {
   width: 96rpx;
   margin: 0 12rpx;
+  font-family: "Barlow", sans-serif;
   font-size: 32rpx;
   text-align: center;
   color: var(--tf-fg-0, rgba(0, 0, 0, 0.9));

@@ -90,8 +90,10 @@ page {
   height: 76rpx;
   line-height: 76rpx;
   padding: 0;
+  /* 原生 input 不继承字体；公司名是卡片的标题，用常规字重，比下面的价格轻一档 */
+  font-family: "Barlow", sans-serif;
   font-size: 36rpx;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--tf-fg-0);
 }
 
@@ -129,8 +131,10 @@ page {
   height: 84rpx;
   line-height: 84rpx;
   padding: 0;
+  font-family: "Barlow", sans-serif;
   font-size: 34rpx;
-  font-weight: 600;
+  /* 价格用同族的 Medium：SemiBold 在 34rpx 下明显压过旁边的标签 */
+  font-weight: 500;
   color: var(--tf-fg-0);
 }
 

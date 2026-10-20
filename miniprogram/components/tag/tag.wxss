@@ -11,6 +11,8 @@
   flex-direction: row;
   align-items: center;
   padding: 0 8rpx;
+  /* 组件样式隔离，继承不到 page 的字体栈，这里再写一次字面量 */
+  font-family: "Barlow", sans-serif;
   font-size: 20rpx;
   line-height: 30rpx;
   border-radius: 4rpx;

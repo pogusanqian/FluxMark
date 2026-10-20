@@ -140,6 +140,8 @@ page {
   margin-top: 8rpx;
   height: 64rpx;
   line-height: 64rpx;
+  /* 原生 input 不继承 page 的字体，价格数字要单独点一次名（Barlow 就靠这一行生效） */
+  font-family: "Barlow", sans-serif;
   font-size: 44rpx;
   font-weight: 600;
   color: var(--tf-fg-0);
@@ -273,6 +275,7 @@ page {
   width: 100%;
   height: 52rpx;
   line-height: 52rpx;
+  font-family: "Barlow", sans-serif;
   font-size: 30rpx;
   font-weight: 600;
   color: var(--tf-fg-1);
@@ -321,6 +324,8 @@ page {
   display: flex;
   align-items: center;
   height: 88rpx;
+  /* 表头也走 Medium，跟下面的数值同一个重量；汉字由系统字体的中等字重接管 */
+  font-weight: 500;
   font-size: 26rpx;
 }
 
@@ -342,8 +347,13 @@ page {
   height: 88rpx;
 }
 
+/*
+ * 台阶价是这张表的主体。Barlow 的 Regular 在 32rpx 下比系统字体细一档，SemiBold 又偏重，
+ * 所以单独用同族的 Medium（500）—— 这一档只嵌了数字和价格符号，5KB 就够。
+ */
 .price {
   font-size: 32rpx;
+  font-weight: 500;
 }
 
 /*
@@ -355,6 +365,8 @@ page {
 }
 
 .ratio-text {
+  /* 幅度值和价格同属这张表的主体，用同一档 Medium；比正文重一点，整列不会发飘 */
+  font-weight: 500;
   font-size: 28rpx;
   color: var(--tf-fg-1);
 }
@@ -404,6 +416,8 @@ page {
 .default-option {
   line-height: 34px;
   text-align: center;
+  /* 滚轮选项是「5%」这种数字，和页面正文用同一个字体栈 */
+  font-family: "Barlow", sans-serif;
 }
 
 /* 按钮用原生 button[size=mini]，间距交给 space-around，不逐个写 margin */

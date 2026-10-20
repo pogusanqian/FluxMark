@@ -10,6 +10,8 @@
 .weui-navigation-bar {
   overflow: hidden;
   color: var(--weui-FG-0);
+  /* 组件样式隔离，继承不到 page 的字体栈，这里再写一次字面量 */
+  font-family: "Barlow", sans-serif;
   flex: none;
 }
 
