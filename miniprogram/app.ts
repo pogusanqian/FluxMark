@@ -1,8 +1,11 @@
 // app.ts
+import { migrateLegacyPrices } from './services/companies'
+
 App<IAppOption>({
   globalData: {},
   onLaunch() {
-    // 本项目无后端，启动时不需要任何异步初始化。
-    // 将来若引入存储结构迁移，放在这里，并保证幂等。
+    // 本项目无后端，启动时只做存储结构迁移。
+    // 旧版本把三个价直接存在 last-* 里，升级后收进公司表；迁移本身是幂等的。
+    migrateLegacyPrices()
   },
 })

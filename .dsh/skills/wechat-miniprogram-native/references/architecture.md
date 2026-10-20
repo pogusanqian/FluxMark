@@ -15,7 +15,7 @@ miniprogram/
 └─ sitemap.json      搜索索引配置，个人自用项目保持默认 allow 即可。
 ```
 
-- `services/` 已存在（`order-price.ts` 纯计算、`storage.ts` 本地存储封装）；`assets/` 尚未存在，需要时再建。**新建任何顶层目录，都要先在本文件登记职责**。
+- `services/` 已存在（`order-price.ts` 纯计算、`companies.ts` 公司表与当前选择、`storage.ts` 本地存储封装）；`assets/` 尚未存在，需要时再建。**新建任何顶层目录，都要先在本文件登记职责**。
 - 不允许 JS 与 TS 混用（不存在 `pages/xxx.js`），不允许一个目录里塞两个页面。
 - 组件只在被用到时创建，不做“以后可能用得上”的预置组件。
 - 页面只在 `app.json` 的 `pages` 里登记过的才存在；删页面时四件套一起删，并同步 `app.json`。

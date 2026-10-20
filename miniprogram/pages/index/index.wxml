@@ -3,9 +3,37 @@
 <navigation-bar title="挂单价计算" back="{{false}}" color="black" background="#F7F7F8"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page">
-    <!-- 参数卡：三个价并排 —— 昨收 / 今开 是行情价，成本是自己的持仓价，三个都能当幅度基准。
-         标题行 = 名字 + 这一价的 1%（谁显示 1%，谁就是幅度基准，所以不需要「基准」标签）；
-         两个比例读数沉到卡底。长按哪一格就弹原生弹框问是否改用那个价为基准（避免误触） -->
+    <!-- 公司条：左边用原生 picker 选公司，右边进公司管理页。
+         选中公司后两个价自动带出来；在这里直接改价也会回写到那家公司 -->
+    <view class="company-bar">
+      <picker
+        class="company-picker"
+        mode="selector"
+        range="{{pickerOptions}}"
+        value="{{pickerIndex}}"
+        disabled="{{!companies.length}}"
+        bind:change="onCompanyChange"
+      >
+        <view class="company-picker-inner">
+          <text class="company-bar-label">公司</text>
+          <text class="company-bar-name {{selectedId ? '' : 'company-bar-name--empty'}}">{{companyName || '未添加'}}</text>
+        </view>
+      </picker>
+      <view
+        class="company-bar-manage"
+        hover-class="company-bar-manage--active"
+        bind:tap="onManage"
+        aria-role="button"
+        aria-label="公司管理"
+      >管理</view>
+    </view>
+
+    <!-- 参数卡分三层：
+         1. 第一行——昨收 / 今开 / 成本 三个价并排，三个都能当幅度基准；
+            标题行 = 名字 + 这一价的 1%（谁显示 1%，谁就是幅度基准，所以不需要「基准」标签）
+         2. 第二行——最高 / 今收 / 最低 三个小格，都能改、改完回写公司，不参与挂单价计算
+         3. 卡底一行——今开较昨收（左）、今收比最高（右）左右排开
+         长按哪个价就弹原生弹框问是否改用那个价为基准（避免误触） -->
     <view class="card">
       <view class="param-row">
         <view class="param" bind:longpress="onAskBasisPrevClose">
@@ -70,20 +98,58 @@
         </view>
       </view>
 
-      <!-- 卡底一行：两个比例各自写全主语「今开较…」，归属靠文字而不是靠位置猜；
-           两个价没填齐时整行不出，只剩的那条也不居中占位 -->
+      <!-- 第二行：最高 / 今收 / 最低 三个小格（左 · 中 · 右），三个数都能直接改，改完自动回写公司；
+           各自跟「当前基准」比：高于基准红、低于绿、持平灰（基准是今开就跟今开比，是昨收就跟昨收比）。
+           没有公司时也在，第一次改价会自动建一家 -->
+      <view class="param-day">
+        <view class="param-day-item param-day-item--start">
+          <text class="param-day-label">最高</text>
+          <input
+            class="param-day-input param-day-input--start param-day-input--{{highTone}}"
+            type="digit"
+            value="{{rangeHigh}}"
+            placeholder="--"
+            placeholder-class="param-day-placeholder"
+            bind:input="onHighInput"
+          />
+        </view>
+        <view class="param-day-item param-day-item--center">
+          <text class="param-day-label">今收</text>
+          <input
+            class="param-day-input param-day-input--center param-day-input--{{closeTone}}"
+            type="digit"
+            value="{{rangeClose}}"
+            placeholder="--"
+            placeholder-class="param-day-placeholder"
+            bind:input="onCloseInput"
+          />
+        </view>
+        <view class="param-day-item param-day-item--end">
+          <text class="param-day-label">最低</text>
+          <input
+            class="param-day-input param-day-input--end param-day-input--{{lowTone}}"
+            type="digit"
+            value="{{rangeLow}}"
+            placeholder="--"
+            placeholder-class="param-day-placeholder"
+            bind:input="onLowInput"
+          />
+        </view>
+      </view>
+
+      <!-- 卡底一行：左边今开较昨收、右边今收比最高；两条都没算出来时只剩提示 -->
       <view class="param-foots">
-        <view wx:if="{{openVsPrevClose.text || openVsCost.text}}" class="param-readout">
+        <view wx:if="{{openVsPrevClose.text || closeVsHigh.text}}" class="param-readout">
           <view wx:if="{{openVsPrevClose.text}}" class="param-pair">
             <text class="param-pair-label">今开较昨收</text>
             <text class="param-pair-value param-pair-value--{{openVsPrevClose.tone}}">{{openVsPrevClose.text}}</text>
           </view>
-          <view wx:if="{{openVsCost.text}}" class="param-pair">
-            <text class="param-pair-label">今开较成本</text>
-            <text class="param-pair-value param-pair-value--{{openVsCost.tone}}">{{openVsCost.text}}</text>
+          <view wx:if="{{closeVsHigh.text}}" class="param-pair">
+            <text class="param-pair-label">今收比最高</text>
+            <text class="param-pair-value param-pair-value--{{closeVsHigh.tone}}">{{closeVsHigh.text}}</text>
           </view>
         </view>
-        <view wx:if="{{showHint}}" class="param-hint">填入昨收与今开，即得每一档挂单价</view>
+        <view wx:if="{{showHint}}" class="param-hint">{{companies.length ? '填入昨收与今开，即得每一档挂单价' : '直接填入昨收与今开就能算，会自动建一家公司'}}</view>
       </view>
     </view>
 

@@ -13,11 +13,21 @@ import {
   RATIO_STEP,
   ratioToWheelIndex,
   VsOther,
+  VsOtherTone,
   wheelIndexToRatio,
 } from '../../services/order-price'
+import {
+  Company,
+  companyLabel,
+  createCompany,
+  loadCompanies,
+  loadSelectedCompanyId,
+  saveCompanies,
+  saveSelectedCompanyId,
+} from '../../services/companies'
 import { read, write } from '../../services/storage'
 
-/** 幅度以哪个价格为基准：今日开盘价 / 昨日收盘价 / 自己的成本价 */
+/** 幅度以哪个价格为基准：今日开盘价 / 昨日收盘价 / 持仓成本价 */
 type Basis = 'open' | 'prevClose' | 'cost'
 
 /** 基准价在页面上的名字：弹框问「改用谁」用它（句子要完整）。
@@ -25,13 +35,10 @@ type Basis = 'open' | 'prevClose' | 'cost'
 const BASIS_NAMES: Record<Basis, string> = {
   open: '今日开盘价',
   prevClose: '昨日收盘价',
-  cost: '成本价',
+  cost: '持仓成本价',
 }
 
-/** 上次输入的今日开盘价 / 昨日收盘价 / 持仓成本 / 上次的幅度 / 默认幅度 / 幅度基准 */
-const PRICE_KEY = 'last-open-price'
-const PREV_CLOSE_KEY = 'last-prev-close-price'
-const COST_KEY = 'last-cost-price'
+/** 上次的幅度 / 默认幅度 / 幅度基准 */
 const RATIO_KEY = 'last-ratio-value'
 const DEFAULT_KEY = 'default-ratio'
 const BASIS_KEY = 'ratio-basis'
@@ -48,21 +55,54 @@ function isValidBasis(value: unknown): value is Basis {
   return value === 'open' || value === 'prevClose' || value === 'cost'
 }
 
+/** 今收 / 最高 / 最低：只回填格式合法的原文（非法值当没填），三个小格都可编辑 */
+function rangeValue(raw: string): string {
+  return parsePrice(raw) === null ? '' : raw.trim()
+}
+
+/**
+ * 三个小格（最高 / 今收 / 最低）各自跟「当前基准价」比：
+ * 高于基准 = 红(up)、低于基准 = 绿(down)、持平 = 灰(flat)；有一个价比不了就不染色（空串）。
+ * 基准是长按选出来的那个价 —— 基准是今开就比今开，是昨收就比昨收。
+ */
+function toneVsBasis(raw: string, basisPrice: number | null): VsOtherTone | '' {
+  const vs = calcVsOther(parsePrice(raw), basisPrice)
+  return vs.text ? vs.tone : ''
+}
+
 // 注意：这里必须用 type 而不是 interface。
 // Component 的泛型约束是 Record<string, ...>，interface 没有隐式索引签名，会编译失败。
 type Data = {
   /** 输入框里的原始文本（今日开盘价） */
   openPrice: string
-  /** 输入框里的原始文本（昨日收盘价）。它既可能是幅度的基准，也可能只是参照 */
+  /** 输入框里的原始文本（昨日收盘价）。它也可以当幅度基准 */
   prevClosePrice: string
-  /** 输入框里的原始文本（自己的持仓成本价）。跟行情价一样能当幅度基准 */
+  /** 输入框里的原始文本（持仓成本价）。它也可以当幅度基准 */
   costPrice: string
-  /** 幅度以哪个价格为基准：今日开盘价 / 昨日收盘价 */
+  /** 公司表（选择器与回写都要用） */
+  companies: Company[]
+  /** 选择器选项：就是全部公司名 */
+  pickerOptions: string[]
+  /** 选择器当前下标 */
+  pickerIndex: number
+  /** 当前选中的公司 id；空串表示一家公司都没有 */
+  selectedId: string
+  /** 当前公司名（显示在选择条上）；没有公司时为空 */
+  companyName: string
+  /** 今日 最高 / 今收 / 最低：卡顶那一行三个小格，直接改、改完回写公司；不参与挂单价计算 */
+  rangeClose: string
+  rangeHigh: string
+  rangeLow: string
+  /** 最高 / 今收 / 最低 各自与当前基准价比出来的着色：高于基准红、低于绿、持平灰；比不了时为空、不着色 */
+  highTone: VsOtherTone | ''
+  closeTone: VsOtherTone | ''
+  lowTone: VsOtherTone | ''
+  /** 今收比较今高：今收相对最高价差几个百分点，只展示 */
+  closeVsHigh: VsOther
+  /** 幅度以哪个价格为基准：今日开盘价 / 昨日收盘价 / 持仓成本价 */
   basis: Basis
   /** 今开相对昨收的涨跌幅，写在参数卡底部 */
   openVsPrevClose: VsOther
-  /** 今开相对持仓成本的涨跌幅，写在参数卡底部 */
-  openVsCost: VsOther
   /** 当前基准价 1% 对应的金额（幅度列的刻度，写在幅度列表头「1%=…」里） */
   basisPercentAmount: string
   /** 卡底没有读数时的说明（首次进来还没填价），跟比例行共用同一种行 */
@@ -88,16 +128,31 @@ type Data = {
 
 type Methods = {
   onLoad(): void
+  /** 从公司页回来（或首次显示）时同步公司表与当前选择 */
+  onShow(): void
   onHide(): void
   onUnload(): void
   onInput(e: WechatMiniprogram.Input): void
   onPrevCloseInput(e: WechatMiniprogram.Input): void
+  /** 成本那一格：和另外两个价一样能改、能当基准，改完回写公司 */
   onCostInput(e: WechatMiniprogram.Input): void
+  /** 卡顶那一行三个小格：改完同样回写公司，并让着色与「今收比最高」跟着变 */
+  onHighInput(e: WechatMiniprogram.Input): void
+  onCloseInput(e: WechatMiniprogram.Input): void
+  onLowInput(e: WechatMiniprogram.Input): void
+  /** 选择器换公司 */
+  onCompanyChange(e: WechatMiniprogram.PickerChange): void
+  /** 去公司管理页 */
+  onManage(): void
+  /** 切到某家公司 */
+  applyCompany(company: Company): void
+  /** 读公司表与当前选择，并把两个价回填到输入框 */
+  syncCompanies(): void
   /** 长按昨日收盘价那一格：问一下是否改用它为基准 */
   onAskBasisPrevClose(): void
   /** 长按今日开盘价那一格：同上 */
   onAskBasisOpen(): void
-  /** 长按成本那一格：同上（止盈止损挂单就是按成本算的） */
+  /** 长按持仓成本那一格：同上 */
   onAskBasisCost(): void
   /** 弹原生弹框确认，确认后才改基准（避免点一下就误切） */
   confirmBasis(basis: Basis): void
@@ -112,7 +167,11 @@ type Methods = {
   onDefaultSave(): void
   /** 按当前「基准价 + 另一基准 + 幅度」重算所有显示值 */
   refresh(): void
-  /** 把当前合法输入落盘 */
+  /** 计算页改价后回写到所选公司（没有选中公司时什么都不做） */
+  writeBack(field: 'prevClose' | 'open' | 'cost' | 'close' | 'high' | 'low', value: string): void
+  /** 一家公司都没有时，第一次改价自动建一家「我的持仓」并选中它 */
+  ensureCompany(): void
+  /** 把当前选择与幅度、基准落盘 */
   persist(): void
 }
 
@@ -121,9 +180,20 @@ Component<Data, {}, Methods, {}, true>({
     openPrice: '',
     prevClosePrice: '',
     costPrice: '',
+    companies: [],
+    pickerOptions: [],
+    pickerIndex: 0,
+    selectedId: '',
+    companyName: '',
+    rangeClose: '',
+    rangeHigh: '',
+    rangeLow: '',
+    highTone: '',
+    closeTone: '',
+    lowTone: '',
+    closeVsHigh: calcVsOther(null, null),
     basis: 'open',
     openVsPrevClose: calcVsOther(null, null),
-    openVsCost: calcVsOther(null, null),
     basisPercentAmount: '',
     showHint: true,
     fixed: calcFixedPairs(null),
@@ -139,21 +209,17 @@ Component<Data, {}, Methods, {}, true>({
   },
   methods: {
     onLoad() {
-      const savedPrice = read<string>(PRICE_KEY, '')
-      const savedPrevClose = read<string>(PREV_CLOSE_KEY, '')
-      const savedCost = read<string>(COST_KEY, '')
       const savedDefault = read<number>(DEFAULT_KEY, RATIO_DEFAULT)
       const defaultRatio = isValidRatio(savedDefault) ? savedDefault : RATIO_DEFAULT
       const savedRatio = read<number>(RATIO_KEY, defaultRatio)
       const savedBasis = read<Basis>(BASIS_KEY, 'open')
       this.setData({
-        openPrice: savedPrice,
-        prevClosePrice: savedPrevClose,
-        costPrice: savedCost,
         basis: isValidBasis(savedBasis) ? savedBasis : 'open',
         ratioValue: isValidRatio(savedRatio) ? savedRatio : defaultRatio,
       })
-      this.refresh()
+    },
+    onShow() {
+      this.syncCompanies()
     },
     onHide() {
       this.persist()
@@ -162,15 +228,88 @@ Component<Data, {}, Methods, {}, true>({
       this.persist()
     },
     onInput(e) {
-      this.setData({ openPrice: e.detail.value })
+      const value = e.detail.value
+      this.setData({ openPrice: value })
+      this.writeBack('open', value)
       this.refresh()
     },
     onPrevCloseInput(e) {
-      this.setData({ prevClosePrice: e.detail.value })
+      const value = e.detail.value
+      this.setData({ prevClosePrice: value })
+      this.writeBack('prevClose', value)
       this.refresh()
     },
     onCostInput(e) {
-      this.setData({ costPrice: e.detail.value })
+      const value = e.detail.value
+      this.setData({ costPrice: value })
+      this.writeBack('cost', value)
+      this.refresh()
+    },
+    onHighInput(e) {
+      const value = e.detail.value
+      this.setData({ rangeHigh: value })
+      this.writeBack('high', value)
+      this.refresh()
+    },
+    onCloseInput(e) {
+      const value = e.detail.value
+      this.setData({ rangeClose: value })
+      this.writeBack('close', value)
+      this.refresh()
+    },
+    onLowInput(e) {
+      const value = e.detail.value
+      this.setData({ rangeLow: value })
+      this.writeBack('low', value)
+      this.refresh()
+    },
+    onCompanyChange(e) {
+      const value = Number(e.detail.value)
+      if (!Number.isInteger(value) || value < 0) return
+      const company = this.data.companies[value]
+      if (!company) return
+      this.applyCompany(company)
+    },
+    onManage() {
+      wx.navigateTo({ url: '/pages/companies/companies' })
+    },
+    applyCompany(company) {
+      this.setData({
+        selectedId: company.id,
+        companyName: companyLabel(company),
+        pickerIndex: this.data.companies.indexOf(company),
+        prevClosePrice: company.prevClose,
+        openPrice: company.open,
+        costPrice: company.cost,
+        rangeClose: rangeValue(company.close),
+        rangeHigh: rangeValue(company.high),
+        rangeLow: rangeValue(company.low),
+      })
+      saveSelectedCompanyId(company.id)
+      this.refresh()
+    },
+    syncCompanies() {
+      const companies = loadCompanies()
+      const stored = loadSelectedCompanyId()
+      // 选中的公司还在就用它，否则落到第一家；一家都没有就清空，页面引导去添加公司
+      const selected =
+        companies.find((company) => company.id === stored) ??
+        (companies.length > 0 ? companies[0] : null)
+      const selectedId = selected ? selected.id : ''
+      if (selectedId !== stored) saveSelectedCompanyId(selectedId)
+      this.setData({
+        companies,
+        pickerOptions: companies.map(companyLabel),
+        pickerIndex: selected ? companies.indexOf(selected) : 0,
+        selectedId,
+        companyName: selected ? companyLabel(selected) : '',
+        prevClosePrice: selected ? selected.prevClose : '',
+        openPrice: selected ? selected.open : '',
+        costPrice: selected ? selected.cost : '',
+        rangeClose: selected ? rangeValue(selected.close) : '',
+        rangeHigh: selected ? rangeValue(selected.high) : '',
+        rangeLow: selected ? rangeValue(selected.low) : '',
+      })
       this.refresh()
     },
     onAskBasisPrevClose() {
@@ -183,6 +322,11 @@ Component<Data, {}, Methods, {}, true>({
       this.confirmBasis('cost')
     },
     confirmBasis(basis) {
+      // 还没有公司的时候三个价是锁着的，改基准没有意义
+      if (!this.data.selectedId) {
+        wx.showToast({ title: '先添加公司', icon: 'none' })
+        return
+      }
       // 已经是基准就没必要问
       if (basis === this.data.basis) {
         wx.showToast({ title: '已经是基准', icon: 'none' })
@@ -248,30 +392,48 @@ Component<Data, {}, Methods, {}, true>({
         (this.data.prevClosePrice !== '' && prevClose === null) ||
         (this.data.costPrice !== '' && cost === null)
       const openVsPrevClose = calcVsOther(open, prevClose)
-      const openVsCost = calcVsOther(open, cost)
       const basisPercentAmount = basisPrice === null ? '' : calcOnePercentAmount(basisPrice)
       this.setData({
         fixed: calcFixedPairs(basisPrice),
         current: calcPricePair(basisPrice, this.data.ratioValue),
         openVsPrevClose,
-        openVsCost,
+        // 三个数跟着「当前基准」着色：基准换成昨收，颜色就改跟昨收比
+        highTone: toneVsBasis(this.data.rangeHigh, basisPrice),
+        closeTone: toneVsBasis(this.data.rangeClose, basisPrice),
+        lowTone: toneVsBasis(this.data.rangeLow, basisPrice),
+        closeVsHigh: calcVsOther(parsePrice(this.data.rangeClose), parsePrice(this.data.rangeHigh)),
         basisPercentAmount,
-        showHint: !openVsPrevClose.text && !openVsCost.text && !basisPercentAmount,
+        showHint: !openVsPrevClose.text && !basisPercentAmount,
         error: invalidInput ? '请输入有效的价格，例如 10.05' : '',
       })
     },
+    writeBack(field, value) {
+      // 没有公司也能直接开算：第一次改价先自动建一家，再照常回写
+      this.ensureCompany()
+      const index = this.data.companies.findIndex((company) => company.id === this.data.selectedId)
+      if (index < 0) return
+      this.setData({ [`companies[${index}].${field}`]: value })
+      saveCompanies(this.data.companies)
+    },
+    ensureCompany() {
+      const selected = this.data.companies.find((company) => company.id === this.data.selectedId)
+      if (selected) return
+      const company: Company = { ...createCompany(), name: '我的持仓' }
+      const companies = [...this.data.companies, company]
+      saveCompanies(companies)
+      saveSelectedCompanyId(company.id)
+      this.setData({
+        companies,
+        pickerOptions: companies.map(companyLabel),
+        pickerIndex: companies.length - 1,
+        selectedId: company.id,
+        companyName: companyLabel(company),
+      })
+    },
     persist() {
-      if (parsePrice(this.data.openPrice) !== null) {
-        write(PRICE_KEY, this.data.openPrice)
-      }
-      if (parsePrice(this.data.prevClosePrice) !== null) {
-        write(PREV_CLOSE_KEY, this.data.prevClosePrice)
-      }
-      if (parsePrice(this.data.costPrice) !== null) {
-        write(COST_KEY, this.data.costPrice)
-      }
       write(RATIO_KEY, this.data.ratioValue)
       write(BASIS_KEY, this.data.basis)
+      saveSelectedCompanyId(this.data.selectedId)
     },
   },
 })

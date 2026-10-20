@@ -7,8 +7,9 @@
  *   picker-view（默认幅度）、input（价格）、hover-class（格子的按下反馈）
  *
  * 版式两段（标题交给导航栏居中，页内不再有大标题）：
- * 1. 参数卡 —— 昨收 / 今开 / 成本 三个价并排；基准那一格的价格下面带一行小字 1%=…
- *    卡底一行两个比例（今开较昨收 / 今开较成本）
+ * 1. 参数卡 —— 第一行 昨收 / 今开 两个价并排（基准那一格的标题行里带 1%=…），
+ *    第二行「最高 / 今收 / 最低」三个小格（都能改、改完回写公司），
+ *    卡底一行读数「今开较昨收（左）· 今收比最高（右）」
  * 2. 阶梯卡 —— 一行一个档位（价格贴外、幅度居中），表头与行同高
  */
 page {
@@ -27,32 +28,94 @@ page {
   padding: 16rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
 }
 
+/* 公司条：左边选公司（原生 picker），右边进公司管理页 */
+.company-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 88rpx;
+  margin-bottom: 24rpx;
+  padding: 0 32rpx;
+  background: var(--tf-bg-0);
+  border-radius: 24rpx;
+}
+
+.company-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.company-picker-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 88rpx;
+}
+
+.company-bar-label {
+  flex: none;
+  font-size: 24rpx;
+  color: var(--tf-fg-2);
+}
+
+/* 名字只占内容宽度；右边的空白仍然是 picker 的点击区 */
+.company-bar-name {
+  flex: none;
+  max-width: 320rpx;
+  margin-left: 16rpx;
+  font-size: 28rpx;
+  color: var(--tf-fg-0);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 一家公司都没有时，选择条上显示「还没有公司」，颜色退一档 */
+.company-bar-name--empty {
+  color: var(--tf-fg-1);
+}
+
+.company-bar-manage {
+  flex: none;
+  padding: 20rpx 0 20rpx 24rpx;
+  font-size: 26rpx;
+  color: var(--tf-link);
+}
+
+.company-bar-manage--active {
+  opacity: 0.5;
+}
+
 .card {
   background: var(--tf-bg-0);
   border-radius: 24rpx;
 }
 
-/* 参数卡：三个格子并排。昨收 / 今开是基准开关的候选 —— 长按哪个价，幅度就以哪个价为轴 */
+/* 参数卡：两个格子并排。昨收 / 今开都是基准候选 —— 长按哪个价，幅度就以哪个价为轴 */
 .param-row {
   display: flex;
 }
 
+/*
+ * 一格的内边距：上面 24rpx 留给标题行，下面只留 16rpx ——
+ * 数字底下本来就有 64rpx 行高带来的余量，再叠 28rpx 会让卡片看起来「空了一截」。
+ */
 .param {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 24rpx 32rpx 28rpx;
+  padding: 24rpx 32rpx 16rpx;
 }
 
-/* 格子之间的竖分隔线（第二个、第三个格子各有一条） */
+/* 两个格子之间的竖分隔线（今开那一格有一条） */
 .param--divider {
   border-left: 1px solid var(--tf-border);
 }
 
 /*
  * 标题行：名字 + 这一价的 1%。
- * 允许换行、名字不许被压缩 —— 价格上到五位数时 1%=120.00 在 82px 里放不下，
- * 就整枚标签掉到第二行，而不是把「今开」挤成两行或把数字截断。
+ * 允许换行、名字不许被压缩 —— 价格上到五位数时 1%=120.00 和名字挤不进一行，
+ * 就让整枚标签掉到第二行，而不是把「今开」挤成两行或把数字截断。
  */
 .param-head {
   display: flex;
@@ -102,15 +165,15 @@ page {
 }
 
 /*
- * 卡底只剩一行：两个比例（今开较昨收 / 今开较成本，各自写全主语，
- * 归属靠文字而不是靠「离哪一列近」）。
+ * 卡底一行两段读数：左边今开较昨收、右边今收比最高（各写全主语，
+ * 归属靠文字而不是靠「离哪一列近」）。只用一端时那一段自然贴左，不会留出空洞。
  * 基准价的 1% 不在这里 —— 它贴在基准那一格里（见 .param-scale）。
  */
 .param-foots {
   border-top: 1px solid var(--tf-border);
 }
 
-/* 一行装两个比例，两端对齐；只剩一条时自然靠左，不居中也不留空洞 */
+/* 读数行：两端对齐（左段贴左、右段贴右）；只有一段时它自己贴左，行不会缺一块 */
 .param-readout {
   display: flex;
   flex-direction: row;
@@ -160,6 +223,90 @@ page {
   height: 72rpx;
   padding: 0 32rpx;
   font-size: 24rpx;
+  color: var(--tf-fg-2);
+}
+
+/*
+ * 参数卡第二行：最高 / 今收 / 最低 三个小格。和上面的价格格同一套写法（名字在上、数字在下），
+ * 三格等分卡片宽度，左格贴左、中格居中、右格贴右；三个数字都是输入框，改完即回写公司。
+ * 上下留白：上面 16rpx 把名字和分隔线隔开，下面只留 12rpx ——
+ * 数字本来就在 52rpx 行高里居中，再叠 padding 就会空出一截。
+ */
+.param-day {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 16rpx 32rpx 12rpx;
+  border-top: 1px solid var(--tf-border);
+}
+
+.param-day-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 首格贴左、中格居中、末格贴右：名字落在哪一边，数字就跟到哪一边 */
+.param-day-item--start {
+  align-items: flex-start;
+}
+
+.param-day-item--center {
+  align-items: center;
+}
+
+.param-day-item--end {
+  align-items: flex-end;
+}
+
+.param-day-label {
+  font-size: 22rpx;
+  color: var(--tf-fg-2);
+}
+
+/*
+ * 小格里的价格输入：与上面两个大格同一条规矩 —— 显式给高度与行高，
+ * 否则 Skyline 下占位符「--」那一行的下半截会被裁掉。
+ */
+.param-day-input {
+  width: 100%;
+  height: 52rpx;
+  line-height: 52rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--tf-fg-1);
+}
+
+/* 输入框里的文字跟着格子贴边：左格靠左、中格居中、右格靠右 */
+.param-day-input--start {
+  text-align: left;
+}
+
+.param-day-input--center {
+  text-align: center;
+}
+
+.param-day-input--end {
+  text-align: right;
+}
+
+/* 没填时的「--」不跟着粗体走 */
+.param-day-placeholder {
+  font-weight: 400;
+  color: var(--tf-fg-2);
+}
+
+/* 三个数各自跟今开比：高于今开红、低于今开绿、持平灰；比不了时没有修饰类，退回上面的深灰 */
+.param-day-input--up {
+  color: var(--tf-up);
+}
+
+.param-day-input--down {
+  color: var(--tf-down);
+}
+
+.param-day-input--flat {
   color: var(--tf-fg-2);
 }
 
